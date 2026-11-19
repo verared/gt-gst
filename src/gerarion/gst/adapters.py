@@ -1,31 +1,21 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # SPDX-FileCopyrightText: 2026 verared contributors
-"""Adaptadores de algoritmos de firma para GST.
+"""Adaptadores de algoritmos de firma para GST v2 (normativo) y v1 (legado).
 
-Registro de algoritmos con una interfaz común:
+Perfil normativo GST v2:
+    HYBRID-ED25519-ML-DSA-44/-65/-87
+        Firma híbrida simultánea Ed25519 (RFC 8032) + ML-DSA (FIPS 204)
+        sobre ``b"GUS3-GST-V2\\x00" + JCS(payload)`` con descriptor
+        anti-downgrade incluido en los bytes firmados (:class:`HybridSigner`,
+        :class:`HybridVerifier`).
 
-    signer.alg              -> nombre canónico del algoritmo (campo `alg` del GST)
-    signer.public_key_hex   -> llave pública serializada
-    signer.sign_payload(m)  -> firma serializable como JSON (dict o str)
-
-Algoritmos disponibles:
-
-    WOTS16-MERKLE-REF-SHA256   referencia educativa hash-only (hashots.py),
-                               sin dependencias, incluida por defecto.
-    SLH-DSA-SHA2-128F          FIPS 205 vía el paquete PyPI `slh-dsa`
-                               (implementación pura de referencia del estándar).
-    SLH-DSA-SHA2-128S          idem, firma pequeña / firma lenta.
-    ML-DSA-44/-65/-87          FIPS 204 vía el paquete PyPI `cryptography`
-                               (>= 47, extra `pqc`): adaptador opcional;
-                               firma pura con contexto GUS2-TS.
-
-Regla del proyecto: *producción exige bibliotecas auditadas*. El esquema de
-referencia WOTS valida la semántica y genera vectores; el despliegue real usa
-SLH-DSA o ML-DSA (o LMS/XMSS desplegados con auditoría). El despacho por `alg`
-hace que coexistan y sean verificables con el mismo documento GST. La firma
-híbrida (Ed25519 + ML-DSA en el mismo documento) queda como objetivo del plan
-post-cuántico (docs/spec/threat-model.md §G6); no está implementada
-en esta versión.
+Adaptadores individuales / legados:
+    ED25519                    RFC 8032 vía ``cryptography``.
+    ML-DSA-44/-65/-87          FIPS 204 vía ``cryptography`` (>= 47).
+    SLH-DSA-SHA2-128F/-128S    FIPS 205 vía ``slh-dsa`` (adaptador opcional).
+    WOTS16-MERKLE-REF-SHA256   DEPRECADO / solo educativo (``deprecated/hashots.py``),
+                               fuera del perfil normativo GST v2 y deshabilitado
+                               por defecto salvo ``GUS_ALLOW_INSECURE_REF=1``.
 """
 
 from __future__ import annotations

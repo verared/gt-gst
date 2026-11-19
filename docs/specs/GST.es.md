@@ -1,7 +1,7 @@
 # Especificación GST — Sellado criptográfico de eventos
 
 - **Estado:** Estable (`GST v2`, requiere auditoría criptográfica externa independiente y custodia TPM/HSM antes de decisiones críticas de producción); perfiles TSA/notario **Experimentales en despliegue** ·
-  **Versión:** 1.0.0 · **Línea base:** GUS v3.0.0 / suite `v3.2.2`
+  **Versión:** 1.1.0 · **Línea base:** GUS v3.0.0 / suite `v3.3.0`
 - **Edición consolidada:** [`../spec/gus-3.0.0.md`](../spec/gus-3.0.0.md) (§7–§8) ·
   Perfil: [`../profiles/gus-3161-perfil.md`](../profiles/gus-3161-perfil.md)
 - **Licencia:** CC-BY-4.0 · Mantenida por: verared contributors

@@ -1,39 +1,49 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # SPDX-FileCopyrightText: 2026 verared contributors
-"""Marca temporal Geroriana firmada (GST, *Gerarion Signed Timestamp*).
+"""Sobre firmado Gerarion Signed Timestamp (GST v2 normativo + compatibilidad v1).
 
-AVISO DE BETA: el esquema hash-only de referencia en este módulo es
-EDUCATIVO y NO está auditado; no debe usarse para decisiones de seguridad
-de producción (ver SECURITY.md / threat-model.md y el gate de
-`adapters.make_adapter`).
+Entrada pública recomendada: :mod:`gerarion.gst.v2` (``create``, ``verify``,
+:class:`~gerarion.gst.v2.VerificationResult`, :class:`~gerarion.gst.trust.KeyRegistry`,
+:class:`~gerarion.gst.replay.SQLiteReplayStore`).
 
-Estructura del documento GST (JSON), versión 2:
+Perfil normativo GST v2
+-----------------------
+Todo sobre ``GST v2`` firma de forma híbrida (**Ed25519 + ML-DSA**) los bytes
+exactos ``b"GUS3-GST-V2\\x00" + JCS(payload)`` (RFC 8785, enteros dentro de
+IEEE-754 ``binary64`` ``±(2^53 - 1)``), incluyendo el descriptor completo de
+algoritmos y claves dentro del payload firmado (protección estructural
+**anti-downgrade**):
 
     {
-      "v": 2,
-      "ctx": "GUS2-TS",
-      "alg": "WOTS16-MERKLE-REF-SHA256",   // interoperable con ML-DSA / SLH-DSA
+      "gst_version": "2.0",
       "ts":  "2031DY-03-08-T-09:30:00-SC-TCJ+0",
-      "ins": 64097688600,                   // instante continuo (segundos)
-      "day": 741871,                        // índice de día absoluto
-      "sig": {"leaf": ..., "sig": [...], "path": [...]},
-      "pub": <hex llave pública del árbol>,
-      "anchor": { "day": ..., "index": ..., "proof": [...], "root": ... }
+      "ins": 64097688600,
+      "nanos": 0,
+      "scale": "TCJ",
+      "event_hash": "sha256:<hex>",
+      "kid": "...", "issuer": "...",
+      "nonce": "<32 hex>", "seq": 1,
+      "policy_version": "gus-sec-v1",
+      "alg": "HYBRID-ED25519-ML-DSA-65",
+      "alg_classical": "ED25519", "alg_pqc": "ML-DSA-65",
+      "kid_classical": "...", "kid_pqc": "...",
+      "pub_classical": "<hex>", "pub_pqc": "<hex>",
+      "sigs": {"alg": "HYBRID-ED25519-ML-DSA-65", "sigs": {"ed25519": "...", "mldsa": "..."}}
     }
 
-Propiedades de la CONSTRUCCIÓN (never "garantías de producto"):
-
-    La firma de este documento (hash-only, sin auditoría) fija el valor de
-    la marca a una clave. Para que la marca sea "no removible" haría falta,
-    además, un notario externo con réplicas independientes y una confianza
-    política previamente fijada: ver docs/threat-model.md. Ninguna frase
-    de este módulo debe leerse como "no falsificable en producción".
+Aviso de aseguramiento de producción: la suite ``gt-gst`` y el notario Merkle
+requieren una auditoría criptográfica independiente de terceros y custodia de
+claves en hardware (TPM/HSM) antes de decisiones críticas de seguridad en
+producción (ver ``SECURITY.md`` y ``docs/spec/threat-model.md``).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os as _os
+import re as _re
+import warnings
 from dataclasses import asdict, dataclass
 from typing import Optional
 
@@ -45,6 +55,13 @@ try:
 except ImportError:  # instalación sin el subpaquete deprecated
     hashots = None
 from .jcs import JcsError, dumps_bytes as _jcs_bytes
+from .replay import ReplayDecision, ReplayGuard, ReplayStore, SQLiteReplayStore
+
+# ===========================================================================
+# LEGACY / DEPRECATED (GST v1) — Mantenido únicamente por retrocompatibilidad.
+# No forma parte del perfil normativo GST v2. Usa `gerarion.gst.v2.create` y
+# `gerarion.gst.v2.verify` (o `create_v2` / `verify_v2`).
+# ===========================================================================
 
 ALG_REFERENCE = "WOTS16-MERKLE-REF-SHA256"
 SPEC_VERSION = 2
@@ -89,11 +106,13 @@ class GtsDocument:
 
 
 def create(raw_or_parsed, signer) -> GtsDocument:
-    """Crea una GST a partir de una entrada de tiempo o un ParsedTimestamp.
-
-    `signer` acepta la interfaz de adaptadores (SigningAdapter) o un
-    hashots.WotsMerkleSigner (se envuelve automáticamente).
-    """
+    """LEGACY / DEPRECATED (GST v1): usa ``gerarion.gst.v2.create`` (GST v2)."""
+    warnings.warn(
+        "create() (GST v1 / GtsDocument) está DEPRECADO; usa "
+        "gerarion.gst.v2.create() o create_v2() con HybridSigner (GST v2).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     adapter = _adapters.make_adapter(signer)
     if isinstance(raw_or_parsed, str):
         parsed = fmt.parse(raw_or_parsed)
@@ -117,10 +136,13 @@ def create(raw_or_parsed, signer) -> GtsDocument:
 
 
 def verify(doc: GtsDocument) -> dict:
-    """Verificación completa: coherencia interna y validez de la firma.
-
-    Devuelve {"ok": bool, "errors": [...], "flags": [...]}.
-    """
+    """LEGACY / DEPRECATED (GST v1): usa ``gerarion.gst.v2.verify`` (GST v2)."""
+    warnings.warn(
+        "verify() (GST v1 / GtsDocument) está DEPRECADO; usa "
+        "gerarion.gst.v2.verify() o verify_v2() para sobres GST v2.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     errors: list = []
     try:
         parsed = fmt.parse(doc.ts)
@@ -257,115 +279,12 @@ def verify_anchor(doc: GtsDocument, notary) -> dict:
 # estructural). Hybrida = todo-o-nada: falta o falla una firma → REJECTED.
 # ===========================================================================
 
-import os as _os
-import re as _re
-
 GST_V2_DOMAIN = b"GUS3-GST-V2\x00"
 GST_V2_VERSION = "2.0"
 GST_V2_POLICY_DEFAULT = "gus-sec-v1"
 
 _EVENT_HASH_RE = _re.compile(r"^sha(256|512):[0-9a-f]{64,128}$")
 _NONCE_RE = _re.compile(r"^[0-9a-f]{32}$")
-
-
-class ReplayGuard:
-    """Guardia anti-replay y anti-rollback persistente.
-
-    Registra ``(kid, nonce)`` vistos y el último par ``(seq, ins)`` fiable
-    por ``kid``. Rechaza (sin registrar nada del intento):
-
-    - replay: ``(kid, nonce)`` ya visto;
-    - rollback de contador: ``seq <=`` último seq confiable del kid;
-    - rollback de reloj: ``ins <`` último instante confiable del kid.
-
-    Persistencia opcional en archivo JSON con escritura atómica
-    (temporal + os.replace + fsync); sin ruta, solo en memoria.
-
-    FAIL-CLOSED: un archivo de estado corrupto, truncado o de estructura
-    ajena ENVENENA la guardia (`_poisoned`): `check_and_record` rechaza
-    todo a partir de entonces en lugar de operar como si no hubiera
-    historial (eso reiniciaría `seq` desde 0 y habilitaría replay y
-    rollback). El operador debe descartar el estado y reemitir con un
-    `kid` nuevo.
-    """
-
-    def __init__(self, path=None):
-        self.path = path
-        self._seen: set = set()
-        self._last_seq: dict = {}
-        self._last_ins: dict = {}
-        self._poisoned = False
-        if path:
-            try:
-                with open(path, "r", encoding="utf-8") as fh:
-                    data = json.load(fh)
-                if not isinstance(data, dict):
-                    raise ValueError("estado: raiz no es un objeto")
-                seen = data.get("seen", [])
-                last_seq = data.get("last_seq", {})
-                last_ins = data.get("last_ins", {})
-                if (
-                    not isinstance(seen, list)
-                    or not isinstance(last_seq, dict)
-                    or not isinstance(last_ins, dict)
-                    or not all(
-                        isinstance(x, (list, tuple))
-                        and len(x) == 2
-                        and all(isinstance(t, str) for t in x)
-                        for x in seen
-                    )
-                ):
-                    raise ValueError("estado: estructura ajena")
-                if not all(
-                    isinstance(v, int) and not isinstance(v, bool)
-                    for v in list(last_seq.values()) + list(last_ins.values())
-                ):
-                    raise ValueError("estado: valores no enteros")
-                self._seen = {(k, n) for k, n in seen}
-                self._last_seq = dict(last_seq)
-                self._last_ins = dict(last_ins)
-            except FileNotFoundError:
-                pass  # sin historial previo: arranque limpio legitimo
-            except ValueError:
-                # JSON corrupto, truncado o de estructura ajena: fail-closed.
-                self._seen, self._last_seq, self._last_ins = set(), {}, {}
-                self._poisoned = True
-
-    def check_and_record(self, kid: str, nonce: str, seq: int, ins: int) -> tuple:
-        """Devuelve (ok, motivo). Si ok, el estado queda actualizado."""
-        if self._poisoned:
-            return False, "estado persistido corrupto: guardia en fail-closed"
-        if isinstance(seq, bool) or not isinstance(seq, int) or \
-                isinstance(ins, bool) or not isinstance(ins, int):
-            return False, "seq/ins deben ser enteros"
-        key = (kid, nonce)
-        if key in self._seen:
-            return False, "replay: nonce ya registrado para esta clave"
-        last_seq = self._last_seq.get(kid)
-        if last_seq is not None and seq <= last_seq:
-            return False, f"rollback: seq {seq} <= último confiable {last_seq}"
-        last_ins = self._last_ins.get(kid)
-        if last_ins is not None and ins < last_ins:
-            return False, f"rollback: instante {ins} < último confiable {last_ins}"
-        self._seen.add(key)
-        self._last_seq[kid] = seq
-        self._last_ins[kid] = ins
-        if self.path:
-            self._save()
-        return True, ""
-
-    def _save(self) -> None:
-        data = {
-            "seen": [list(k) for k in self._seen],
-            "last_seq": self._last_seq,
-            "last_ins": self._last_ins,
-        }
-        tmp = f"{self.path}.tmp.{_os.getpid()}"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(data, fh)
-            fh.flush()
-            _os.fsync(fh.fileno())
-        _os.replace(tmp, self.path)
 
 
 def _gst_v2_check_payload(payload: dict) -> list:
@@ -538,5 +457,11 @@ def verify_v2(envelope: dict, guard: "ReplayGuard" = None, **_) -> dict:
             payload["kid"], payload["nonce"], payload["seq"], payload["ins"]
         )
         if not ok_guard:
-            return {"ok": False, "errors": [reason], "state": "REJECTED"}
-    return {"ok": True, "errors": [], "state": state}
+            return {
+                "ok": False,
+                "errors": [reason],
+                "state": "REJECTED",
+                "replay_checked": True,
+            }
+        return {"ok": True, "errors": [], "state": state, "replay_checked": True}
+    return {"ok": True, "errors": [], "state": state, "replay_checked": False}

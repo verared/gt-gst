@@ -1,7 +1,7 @@
 # GST Specification — Cryptographic Event Sealing
 
 - **Status:** Stable (`GST v2`, external cryptographic audit & TPM/HSM custody required before production security decisions); TSA/notary profiles **Experimental in deployment** ·
-  **Version:** 1.0.0 · **Baseline:** GUS v3.0.0 / suite `v3.2.2`
+  **Version:** 1.1.0 · **Baseline:** GUS v3.0.0 / suite `v3.3.0`
 - **Consolidated edition:** [`../en/gus-3.0.0.md`](../en/gus-3.0.0.md) (§7–§8) ·
   Profile: [`../en/profiles/gus-3161-profile.md`](../en/profiles/gus-3161-profile.md)
 - **License:** CC-BY-4.0 · Maintained by: verared contributors

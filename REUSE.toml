@@ -1,13 +1,13 @@
 version = 1
 
-# Export generado por tools/export_module.py (fuente: verared/gerarion v3.2.2).
+# Export generado por tools/export_module.py (fuente: verared/gerarion v3.3.0).
 # Cobertura completa del paquete (precedencia override).
 
 # code — MIT OR Apache-2.0
 
 [[annotations]]
 precedence = "override"
-path = ["src/gerarion/gst/__init__.py", "src/gerarion/gst/adapters.py", "src/gerarion/gst/envelope.py", "src/gerarion/gst/jcs.py", "src/gerarion/gst/notary.py", "src/gerarion/gst/notary_cluster.py"]
+path = ["src/gerarion/gst/__init__.py", "src/gerarion/gst/adapters.py", "src/gerarion/gst/envelope.py", "src/gerarion/gst/jcs.py", "src/gerarion/gst/notary.py", "src/gerarion/gst/notary_cluster.py", "src/gerarion/gst/replay.py", "src/gerarion/gst/trust.py", "src/gerarion/gst/v2.py"]
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 SPDX-FileCopyrightText = "2026 verared contributors"
 
@@ -23,6 +23,6 @@ SPDX-FileCopyrightText = "2026 verared contributors"
 
 [[annotations]]
 precedence = "override"
-path = ["EXPORT-MANIFEST.json"]
+path = ["EXPORT-MANIFEST.json*"]
 SPDX-License-Identifier = "CC0-1.0"
 SPDX-FileCopyrightText = "2026 verared contributors"
