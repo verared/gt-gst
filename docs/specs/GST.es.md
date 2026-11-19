@@ -1,7 +1,7 @@
 # Especificación GST — Sellado criptográfico de eventos
 
-- **Estado:** Estable (GST v2); perfiles TSA/notario **Experimentales en despliegue** ·
-  **Versión:** 1.0.0 · **Línea base:** GUS v3.1.1
+- **Estado:** Estable (`GST v2`, requiere auditoría criptográfica externa independiente y custodia TPM/HSM antes de decisiones críticas de producción); perfiles TSA/notario **Experimentales en despliegue** ·
+  **Versión:** 1.0.0 · **Línea base:** GUS v3.0.0 / suite `v3.2.2`
 - **Edición consolidada:** [`../spec/gus-3.0.0.md`](../spec/gus-3.0.0.md) (§7–§8) ·
   Perfil: [`../profiles/gus-3161-perfil.md`](../profiles/gus-3161-perfil.md)
 - **Licencia:** CC-BY-4.0 · Mantenida por: verared contributors
@@ -14,6 +14,14 @@ simultánea Ed25519 + ML-DSA con protección anti-*downgrade*, protección
 anti-replay/anti-rollback y los anclajes externos (notario Merkle y RFC 3161).
 No cubre la calidad previa del reloj (dominio GTS) ni el formato de la marca
 (dominio GUS).
+
+### Perfil criptográfico normativo
+
+| Aspecto | Declaración normativa |
+|---|---|
+| **Algoritmo normativo (`GST v2`)** | Firma híbrida **Ed25519 + ML-DSA** sobre payload canonicalizado con **RFC 8785 (JCS)** (enteros estrictamente dentro de IEEE-754 `binary64` `±(2^53 - 1)`), separación de dominio `GUS3-GST-V2`, descriptor de algoritmos y claves incluido dentro de los bytes firmados (protección **anti-downgrade**), contador monotónico `seq` + `nonce` con `ReplayGuard` *fail-closed* y notario Merkle diario opcional. |
+| **Algoritmo deprecado / educativo** | `WOTS+` / `WotsMerkleSigner`, aislado en `src/gerarion/deprecated/hashots.py` con `DeprecationWarning` explícito; **fuera** del perfil normativo `GST v2` y no apto para producción. |
+| **Cobertura de pruebas y límite de auditoría** | **Cubierto por pruebas:** núcleo aritmético, RFC 8785 JCS (entradas hostiles y rechazo `> 2^53 - 1`), verificación dual híbrida, rechazo anti-downgrade, `ReplayGuard` *fail-closed*, anclas sub-segundo e integración de satélites ensamblados. **Pendiente:** auditoría criptográfica externa independiente de terceros y custodia de claves en hardware (TPM/HSM) antes de decisiones críticas de producción. |
 
 ## 2. Reglas normativas
 

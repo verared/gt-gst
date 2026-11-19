@@ -1,7 +1,7 @@
 # GST Specification — Cryptographic Event Sealing
 
-- **Status:** Stable (GST v2); TSA/notary profiles **Experimental in deployment** ·
-  **Version:** 1.0.0 · **Baseline:** GUS v3.1.1
+- **Status:** Stable (`GST v2`, external cryptographic audit & TPM/HSM custody required before production security decisions); TSA/notary profiles **Experimental in deployment** ·
+  **Version:** 1.0.0 · **Baseline:** GUS v3.0.0 / suite `v3.2.2`
 - **Consolidated edition:** [`../en/gus-3.0.0.md`](../en/gus-3.0.0.md) (§7–§8) ·
   Profile: [`../en/profiles/gus-3161-profile.md`](../en/profiles/gus-3161-profile.md)
 - **License:** CC-BY-4.0 · Maintained by: verared contributors
@@ -14,6 +14,14 @@ signing Ed25519 + ML-DSA with anti-downgrade protection, anti-replay /
 anti-rollback protection, and the external anchors (Merkle notary and
 RFC 3161). It does not cover prior clock quality (GTS domain) nor the
 stamp format (GUS domain).
+
+### Normative Cryptographic Profile
+
+| Aspect | Normative declaration |
+|---|---|
+| **Normative algorithm (`GST v2`)** | Hybrid **Ed25519 + ML-DSA** over **RFC 8785 (JCS)** canonicalised payload (integers strictly within IEEE-754 `binary64` `±(2^53 - 1)`), domain separation `GUS3-GST-V2`, algorithm and key descriptors included inside the signed bytes (**anti-downgrade**), monotonic counter `seq` + `nonce` with fail-closed `ReplayGuard`, and optional daily Merkle notary. |
+| **Deprecated / educational algorithm** | `WOTS+` / `WotsMerkleSigner`, isolated in `src/gerarion/deprecated/hashots.py` with explicit `DeprecationWarning`; **outside** the normative `GST v2` profile and not for production. |
+| **Test coverage & audit boundary** | **Covered by tests:** core arithmetic, RFC 8785 JCS (hostile inputs and `> 2^53 - 1` rejection), dual hybrid verification, anti-downgrade rejection, fail-closed `ReplayGuard`, sub-second anchors, and assembled satellite integration. **Pending:** independent external third-party cryptographic audit and hardware key custody (TPM/HSM) before production security decisions. |
 
 ## 2. Normative rules
 
