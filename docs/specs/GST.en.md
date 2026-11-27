@@ -1,7 +1,7 @@
 # GST Specification — Cryptographic Event Sealing
 
 - **Status:** Stable (`GST v2`, external cryptographic audit & TPM/HSM custody required before production security decisions); TSA/notary profiles **Experimental in deployment** ·
-  **Version:** 1.1.0 · **Baseline:** GUS v3.0.0 / suite `v3.3.0`
+  **Version:** 1.1.0 · **Baseline:** GUS v3.0.0 / suite `v3.4.0`
 - **Consolidated edition:** [`../en/gus-3.0.0.md`](../en/gus-3.0.0.md) (§7–§8) ·
   Profile: [`../en/profiles/gus-3161-profile.md`](../en/profiles/gus-3161-profile.md)
 - **License:** CC-BY-4.0 · Maintained by: verared contributors
@@ -34,11 +34,13 @@ stamp format (GUS domain).
    `b"GUS3-GST-V2\x00" + canonical_bytes`.
 3. **Mandatory v2 envelope fields:** `gst_version: "2.0"`, `ts`
    (canonical GUS stamp), `ins` (int64 seconds), `nanos`
-   (0..999,999,999), `scale: "TCJ"` (or explicit `"TAI"`), `event_hash`
+   (0..999,999,999), `scale: "TCJ"`, `event_hash`
    (mandatory, `sha256:<hex>` or `sha512:<hex>`), `kid` and `issuer`,
    `nonce` (cryptographically random) and `seq` (monotonic counter),
-   `policy_version`. A `v2` envelope without a valid `event_hash` is
-   rejected.
+   `policy_version`. The verifier requires the independently computed event
+   digest to match `event_hash` exactly (`sha256`: 64 lowercase hex digits;
+   `sha512`: 128). `ins` must account for the observer offset encoded in `ts`.
+   Relabeling a TCJ coordinate as TAI is rejected.
 4. **Hybrid signing:** the complete algorithm descriptors (`alg`,
    `kid_classical`, `kid_pqc`) live **inside the canonicalised payload
    before signing**; removing or downgrading the post-quantum signature

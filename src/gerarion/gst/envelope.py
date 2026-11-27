@@ -263,7 +263,7 @@ def verify_anchor(doc: GtsDocument, notary) -> dict:
 #     "ts":  "2031DY-03-08-T-09:30:00-SC-TCJ+0",   # marca canónica GUS v3.0.0
 #     "ins": 64097688600,                           # segundos (int64)
 #     "nanos": 0,                                   # 0..999_999_999
-#     "scale": "TCJ",                               # o "TAI" explícito
+#     "scale": "TCJ",                               # coordenada GUS sobre TCJ
 #     "event_hash": "sha256:<hex>",                 # VINCULACIÓN OBLIGATORIA
 #     "kid": "...", "issuer": "...",
 #     "nonce": "<32 hex>", "seq": 42,
@@ -283,8 +283,13 @@ GST_V2_DOMAIN = b"GUS3-GST-V2\x00"
 GST_V2_VERSION = "2.0"
 GST_V2_POLICY_DEFAULT = "gus-sec-v1"
 
-_EVENT_HASH_RE = _re.compile(r"^sha(256|512):[0-9a-f]{64,128}$")
+_EVENT_HASH_RE = _re.compile(r"(?:sha256:[0-9a-f]{64}|sha512:[0-9a-f]{128})\Z")
 _NONCE_RE = _re.compile(r"^[0-9a-f]{32}$")
+
+
+def _matches_event_hash(actual, expected) -> bool:
+    return (isinstance(actual, str) and isinstance(expected, str)
+            and bool(_EVENT_HASH_RE.fullmatch(actual)) and actual == expected)
 
 
 def _gst_v2_check_payload(payload: dict) -> list:
@@ -292,8 +297,8 @@ def _gst_v2_check_payload(payload: dict) -> list:
     errors = []
     if payload.get("gst_version") != GST_V2_VERSION:
         errors.append(f"gst_version debe ser {GST_V2_VERSION!r}")
-    if payload.get("scale") not in ("TCJ", "TAI"):
-        errors.append("scale debe ser 'TCJ' o 'TAI' explícito")
+    if payload.get("scale") != "TCJ":
+        errors.append("scale debe ser 'TCJ'; no se admite relabeling a TAI")
     eh = payload.get("event_hash")
     if not isinstance(eh, str) or not _EVENT_HASH_RE.match(eh):
         errors.append(
@@ -351,6 +356,8 @@ def create_v2(
     """
     if not isinstance(signer, _adapters.HybridSigner):
         raise TypeError("GST v2 exige un HybridSigner (Ed25519 + ML-DSA)")
+    if scale != "TCJ":
+        raise ValueError("GST v2 solo admite la escala TCJ")
     if not isinstance(event_hash, str) or not _EVENT_HASH_RE.match(event_hash):
         raise ValueError(
             "event_hash obligatorio con forma 'sha256:<hex>' o 'sha512:<hex>'"
@@ -367,7 +374,7 @@ def create_v2(
     canon = fmt.to_canonical(parsed)
     date = cal.from_gerarion(parsed.year, parsed.month, parsed.day)
     instant = cal.instant_from_parts(
-        date.day_index, parsed.hour, parsed.minute, parsed.second
+        date.day_index, parsed.hour, parsed.minute, parsed.second, parsed.offset_seconds
     )
     nanos = getattr(parsed, "nanos", 0)
     cal.validate_nanos(nanos)
@@ -396,7 +403,7 @@ def create_v2(
     return envelope
 
 
-def verify_v2(envelope: dict, guard: "ReplayGuard" = None, **_) -> dict:
+def verify_v2(envelope: dict, guard: "ReplayGuard" = None, *, expected_event_hash: str) -> dict:
     """Verificación GST v2 completa: esquema, firma dual y guardia anti-replay.
 
     Devuelve {"ok": bool, "errors": [...], "state": "..."}; con guard, un
@@ -416,6 +423,8 @@ def verify_v2(envelope: dict, guard: "ReplayGuard" = None, **_) -> dict:
         }
     payload = {k: v for k, v in envelope.items() if k != "sigs"}
     errors.extend(_gst_v2_check_payload(payload))
+    if not _matches_event_hash(payload.get("event_hash"), expected_event_hash):
+        errors.append("event_hash no coincide con el digest del artefacto esperado")
     if errors:
         return {"ok": False, "errors": errors, "state": "REJECTED"}
 
@@ -426,7 +435,7 @@ def verify_v2(envelope: dict, guard: "ReplayGuard" = None, **_) -> dict:
         return {"ok": False, "errors": [f"formato: {exc}"], "state": "REJECTED"}
     date = cal.from_gerarion(parsed.year, parsed.month, parsed.day)
     instant = cal.instant_from_parts(
-        date.day_index, parsed.hour, parsed.minute, parsed.second
+        date.day_index, parsed.hour, parsed.minute, parsed.second, parsed.offset_seconds
     )
     if instant != payload["ins"]:
         errors.append("instante divergente del formato canónico")

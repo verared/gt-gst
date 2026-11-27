@@ -24,7 +24,7 @@ ortogonales con códigos de razón auditables:
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ..core import calendar as cal
 from ..core import format as fmt
@@ -98,19 +98,30 @@ TemporalLevel = TemporalAssurance
 
 @dataclass(frozen=True)
 class VerificationResult:
-    """Resultado estructurado en 3 niveles de ``gerarion.gst.v2.verify``."""
+    """Resultado estructurado; una lectura externa por sí sola no ancla un sello."""
 
     crypto: CryptographicValidity
     identity: IdentityPolicyValidity
     temporal: TemporalAssurance
+    anchor_verified: bool = False
+
+    @property
+    def sealed(self) -> bool:
+        return self.crypto.valid and self.identity.valid
+
+    @property
+    def anchored(self) -> bool:
+        return self.sealed and self.temporal.clock_state == "VERIFIED" and self.anchor_verified
 
     @property
     def overall_trusted(self) -> bool:
-        """True únicamente si Nivel 1 (crypto) y Nivel 2 (identity) son válidos."""
-        return bool(self.crypto.valid and self.identity.valid)
+        """True solo para un sello corroborado bajo la política de anclaje."""
+        return self.anchored
 
     def to_dict(self) -> dict:
         data = asdict(self)
+        data["sealed"] = self.sealed
+        data["anchored"] = self.anchored
         data["overall_trusted"] = self.overall_trusted
         return data
 
@@ -205,7 +216,7 @@ def _extract_temporal(
     )
 
 
-def _evaluate_crypto(envelope: Any) -> tuple[CryptographicValidity, Optional[dict]]:
+def _evaluate_crypto(envelope: Any, expected_event_hash: str) -> tuple[CryptographicValidity, Optional[dict]]:
     if not isinstance(envelope, dict):
         return (
             CryptographicValidity(
@@ -241,7 +252,10 @@ def _evaluate_crypto(envelope: Any) -> tuple[CryptographicValidity, Optional[dic
 
     # 2. Validación de event_hash
     eh = payload.get("event_hash")
-    event_hash_valid = bool(isinstance(eh, str) and _env._EVENT_HASH_RE.match(eh))
+    event_hash_valid = _env._matches_event_hash(eh, expected_event_hash)
+    if not event_hash_valid:
+        return CryptographicValidity(False, alg, jcs_valid, False, False,
+                                     "INVALID_EVENT_HASH: digest ausente, inválido o divergente"), payload
 
     # 3. Validación anti-downgrade del descriptor híbrido
     sigs_blob = envelope.get("sigs")
@@ -299,7 +313,7 @@ def _evaluate_crypto(envelope: Any) -> tuple[CryptographicValidity, Optional[dic
         parsed = fmt.parse(payload["ts"])
         date = cal.from_gerarion(parsed.year, parsed.month, parsed.day)
         instant = cal.instant_from_parts(
-            date.day_index, parsed.hour, parsed.minute, parsed.second
+            date.day_index, parsed.hour, parsed.minute, parsed.second, parsed.offset_seconds
         )
     except Exception as exc:  # noqa: BLE001
         return (
@@ -378,10 +392,12 @@ def _evaluate_crypto(envelope: Any) -> tuple[CryptographicValidity, Optional[dic
 def verify(
     envelope: dict,
     *,
+    expected_event_hash: str,
     trust_store: Optional[KeyRegistry] = None,
     replay_store: Optional[ReplayStore] = None,
     guard: Optional[ReplayStore] = None,
     clock_reading: Optional[Any] = None,
+    verify_temporal_anchor: Optional[Callable[[bytes, TemporalAssurance], bool]] = None,
     allow_unchecked_replay: bool = False,
     required_scope: Optional[str] = None,
 ) -> VerificationResult:
@@ -395,8 +411,10 @@ def verify(
       ``identity.valid`` es ``False`` salvo que se pase explícitamente
       ``allow_unchecked_replay=True``.
     """
+    # El callback de política confiable debe vincular evidencia verificada a
+    # estos bytes exactos del sobre (incluidas las firmas) y a la lectura.
     active_replay_store = replay_store if replay_store is not None else guard
-    crypto, payload = _evaluate_crypto(envelope)
+    crypto, payload = _evaluate_crypto(envelope, expected_event_hash)
     temporal = _extract_temporal(payload or {}, clock_reading)
 
     if not crypto.valid or payload is None:
@@ -475,6 +493,12 @@ def verify(
             replay_reason = str(msg) or ("REPLAY_OK" if replay_ok else "REPLAY_REJECTED")
 
     identity_valid = bool(trusted_issuer and replay_ok)
+    anchor_verified = False
+    if identity_valid and temporal.clock_state == "VERIFIED" and verify_temporal_anchor is not None:
+        try:
+            anchor_verified = verify_temporal_anchor(_jcs_bytes(envelope), temporal) is True
+        except Exception:
+            pass  # unavailable or invalid temporal evidence cannot promote a seal
     if not trusted_issuer:
         combined_reason = trust_reason
     elif not replay_ok:
@@ -493,4 +517,5 @@ def verify(
             reason=combined_reason,
         ),
         temporal=temporal,
+        anchor_verified=anchor_verified,
     )

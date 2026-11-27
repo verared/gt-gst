@@ -1,11 +1,11 @@
 {
   "schema": "gerarion-export-manifest/1",
   "module": "gt-gst",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "maturity": "stable",
   "source_repo": "verared/gerarion",
-  "source_tag": "v3.3.0",
-  "source_commit": "7d4bf95f29956888f6f19590ae2b024125828d12",
+  "source_tag": "v3.4.0",
+  "source_commit": "277f99118e23388fd84afecbd47a4f92805528e5",
   "dependencies": {
     "gt-core": ">=3.2.0,<4.0.0"
   },
@@ -16,21 +16,21 @@
     "LICENSES/CC0-1.0.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
     "LICENSES/MIT.txt": "757fbdb81df81bd060d17276424bd4fc26269e780599988c3ce8fba4260b0b20",
     "NOTICE": "6af3a8bb6fe83f1b2d2f3d76528ab1f2b8e56da842c1de81673385821513e835",
-    "README.es.md": "2adc701e820f19dec3d20e6e8a9049c6de61902cd4b8b4ef133d2bbac8cc0321",
-    "README.md": "dfefbc6dfadf7ab0a2dc43871c5fb62f4dfbca7f529f1282518d6a1e58752971",
-    "REUSE.toml": "055668446f3c45732815b5ec7e82b4981fc53e04450843d7effd1dadb83b267d",
-    "docs/en/threat-model.md": "e57b9bc143dcdbcb7327df0bf8d204bd1ced7f8306ef8886c2e5412f5ced250c",
-    "docs/spec/threat-model.md": "97ce55931436237332b9122e1540f265d8f7c4b5418936fef060238aec5f0799",
-    "docs/specs/GST.en.md": "8bc708262a658b655fe9f24e604867d2909a70f2df4d79169a9ea9b9180dd6cd",
-    "docs/specs/GST.es.md": "4d2c4320557bbf9bce86569b749a8ae87d40c3a8afdd2c15e9e933904bc3647f",
+    "README.es.md": "e0cdcdfdea9562c0e39004a9cceb30facffd2a577ef013eeb74d4b4096e3d8f2",
+    "README.md": "105a3fa0486323ba95c396f3b0480c4aa7fbdf9fdbebc462837c6178c61d0a55",
+    "REUSE.toml": "cc1e6257fccb7e40ea7b0d884142cc3df0b9101b339a0b00fd2e79179f04595d",
+    "docs/en/threat-model.md": "af49b5122674573c2129e328946999fa03aed2532a9452b7856e2bd20afd7576",
+    "docs/spec/threat-model.md": "de7ccd50e5ea76db92c8a29a3d2444c902e7a6843dfd024504acd319f3a34d6b",
+    "docs/specs/GST.en.md": "a8ad6660b978758d3159e27db7d10fdd293fd6453c78a24c01fc8828b86b10f3",
+    "docs/specs/GST.es.md": "6dd6d35c80d3913174f141d8ba2bbd273bc9a36e48adef1d90d836b880faca42",
     "src/gerarion/gst/__init__.py": "1de6bfb6f9d7423031b955ef6d14ce9615496bf26aba883fe6eaecfc41c31163",
     "src/gerarion/gst/adapters.py": "8225591f055537301d0875e6b779666a990cbe67ededac1abce1192682de0851",
-    "src/gerarion/gst/envelope.py": "5c14b4a61cf3cbf2386909d9df7c06f15d27c8c0006a365e69a48f93cd2f4e49",
+    "src/gerarion/gst/envelope.py": "40219fc3f6fde730c49dcf4880dd6b236f699a8c356335fb88eea32aef358bb5",
     "src/gerarion/gst/jcs.py": "8f2429ca87c3aa8aac480dde239c6e189aeff9d87a85236f88e8fea319b43e1d",
     "src/gerarion/gst/notary.py": "4f36cd27d79b5bf3d1b3c2d6ef43d62f98be48e75ebd11b2de1a0c87eb6cadbe",
     "src/gerarion/gst/notary_cluster.py": "8d8b709b776f4f1f94866ee6d5d368c54443b3ea119cc1458561c4200786720f",
     "src/gerarion/gst/replay.py": "a23b3120a2755c6e42e4312e26c070cd35dc40d42726db59afa5421fc2f57abc",
     "src/gerarion/gst/trust.py": "e06c885d0ae7417e9f99778025da7dba8f23997019b2a1c7e27e3cf44b6ac851",
-    "src/gerarion/gst/v2.py": "264d38d63f2d125260039583f9452dc342591cb927a77287b10222ea02115050"
+    "src/gerarion/gst/v2.py": "31afbd6eeec51a8386ad57c4ff804be0232a323469467b60e3916592a8fa2727"
   }
 }

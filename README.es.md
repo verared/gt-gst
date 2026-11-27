@@ -1,6 +1,6 @@
 # Sellado criptográfico de eventos
 
-Parte de la suite de referencia **Gerarion** (verared/gerarion `v3.3.0`,
+Parte de la suite de referencia **Gerarion** (verared/gerarion `v3.4.0`,
 Gerarion Universal Standard). Este directorio es un **paquete de
 exportación** listo para publicarse (o consumirse) como repositorio
 satélite `verared/gt-gst`; conserva las rutas relativas del repositorio
@@ -12,11 +12,11 @@ El sobre firmado GST v2: canonicalización RFC 8785 (JCS), firma híbrida Ed2551
 
 ## Estado normativo
 
-- **Estable (GST v2; auditoría criptográfica externa requerida para producción)** (`maturity: stable`) — línea base `v3.3.0` (aritmética y vectores
+- **Estable (GST v2; auditoría criptográfica externa requerida para producción)** (`maturity: stable`) — línea base `v3.4.0` (aritmética y vectores
   congelados: GUS v3.0.0).
 - Especificación(es) incluida(s): `docs/specs/GST.es.md`, `docs/specs/GST.en.md`, `docs/spec/threat-model.md`, `docs/en/threat-model.md`
 - Manifiesto de integridad verificable: [`EXPORT-MANIFEST.json`](EXPORT-MANIFEST.json)
-- Matriz oficial de compatibilidad: [`COMPATIBILITY.md`](https://github.com/verared/gerarion/blob/v3.3.0/COMPATIBILITY.md)
+- Matriz oficial de compatibilidad: [`COMPATIBILITY.md`](https://github.com/verared/gerarion/blob/v3.4.0/COMPATIBILITY.md)
 
 ### Perfil criptográfico normativo (`GST v2`)
 
@@ -52,12 +52,12 @@ envelope = v2.create(
 )
 
 # 3. Verificar en 3 niveles independientes (Criptografía, Identidad/Replay, Aseguramiento Temporal)
-res = v2.verify(envelope, trust_store=registry, replay_store=replay_store)
+res = v2.verify(envelope, expected_event_hash=event_hash, trust_store=registry, replay_store=replay_store)
 assert res.crypto.valid is True
 assert res.identity.valid is True and res.identity.key_status == "ACTIVE"
 assert res.identity.replay_status == "OK"
 assert res.temporal.clock_state == "UNKNOWN"  # O "VERIFIED" al pasar una lectura de gt-gts
-assert res.overall_trusted is True
+assert res.sealed and not res.overall_trusted
 ```
 
 ## Las 5 Garantías de Distribución
@@ -65,7 +65,7 @@ assert res.overall_trusted is True
 | # | Garantía | Mecanismo verificable |
 |---|---|---|
 | 1 | **Integridad SHA-256** | Mapa `files` en [`EXPORT-MANIFEST.json`](EXPORT-MANIFEST.json) verificado con `--verify-existing`. |
-| 2 | **Procedencia declarada** | Campos `source_repo`, `source_tag` (`v3.3.0`) y `source_commit` (SHA-1 de 40 caracteres). |
+| 2 | **Procedencia declarada** | Campos `source_repo`, `source_tag` (`v3.4.0`) y `source_commit` (SHA-1 de 40 caracteres). |
 | 3 | **Autenticidad de publicación** | Firma Ed25519 separada `EXPORT-MANIFEST.json.sig` verificable con `--trusted-pub-key` (sin autorreferencia). |
 | 4 | **Reproducibilidad** | Re-exportación determinista bit a bit desde el mismo `--source-commit`. |
 | 5 | **Conformidad funcional** | Suite de vectores normativos CC0 e integración cruzada en C11, Python y JavaScript. |
@@ -73,7 +73,7 @@ assert res.overall_trusted is True
 ## Dependencias
 
 - `gt-core` (*verared/gt-core*): tipos base y servicios del núcleo.
-Base común: `verared/gerarion` `v3.3.0`.
+Base común: `verared/gerarion` `v3.4.0`.
 
 ## Contenido
 
@@ -114,7 +114,7 @@ python3 tools/export_module.py --verify-existing /ruta/a/gt-gst --trusted-pub-ke
 ## Contrato de sincronización con `verared/gerarion`
 
 Este paquete es **generado, no editado a mano**: se regenera byte a
-byte desde `verared/gerarion v3.3.0` con
+byte desde `verared/gerarion v3.4.0` con
 `python3 tools/export_module.py --module gt-gst --out <dir>`. La fuente
 de verdad normativa (especificaciones, vectores CC0, núcleos de
 referencia de las tres plataformas y la batería completa) permanece en
